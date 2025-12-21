@@ -436,6 +436,20 @@ window.addEventListener("scroll", () => {
   style="background:#b90909;color:white;margin-bottom:10px;">
   <i class="fa fa-trash"></i> Hapus Semua Riwayat
   </button>
+
+  <!-- SEARCH RIWAYAT -->
+<div class="row mb-3">
+  <div class="col-md-6">
+    <input
+      type="text"
+      id="searchRental"
+      class="form-control"
+      placeholder="🔍 Cari nama, motor, no HP, status, tanggal..."
+      oninput="filterRentals()"
+    />
+  </div>
+</div>
+
 <div class="table-responsive">
   <table class="rental-table">
   <thead>
@@ -1264,17 +1278,17 @@ document.getElementById("saveBikeBtn").onclick = async () => {
 /* ===============================
    10. RENDER RENTALS TABLE (dengan nama motor)
    =============================== */
+
+let allRentals = []; // simpan semua data asli
+
 async function renderRentalsTable() {
   if (!isAdmin || isRenderingRentals) return;
   isRenderingRentals = true;
 
   const { data: rentals, error } = await db
     .from("rentals")
-    .select(`
-      *,
-      bikes(name)
-    `)
-    .order("start_time", { ascending: false }); // 🔥 TERBARU DI ATAS
+    .select(`*, bikes(name)`)
+    .order("start_time", { ascending: false });
 
   if (error) {
     console.error(error.message);
@@ -1282,10 +1296,33 @@ async function renderRentalsTable() {
     return;
   }
 
-  const tbody = document.getElementById("rentalTable");
-  tbody.innerHTML = ""; // ✅ RESET SEKALI
+  allRentals = rentals; // simpan data asli
+  renderGroupedRentals(rentals);
 
-  rentals.forEach(r => {
+  isRenderingRentals = false;
+}
+
+function renderGroupedRentals(data) {
+  const tbody = document.getElementById("rentalTable");
+  tbody.innerHTML = "";
+
+  let lastDate = "";
+
+  data.forEach(r => {
+    const dateOnly = toDateOnly(r.start_time);
+
+    // 🔹 JUDUL PER HARI
+    if (dateOnly !== lastDate) {
+      const dateRow = document.createElement("tr");
+      dateRow.innerHTML = `
+        <td colspan="12"
+          style="background:#f3f4f6;font-weight:bold;">
+          📅 ${dateOnly}
+        </td>`;
+      tbody.appendChild(dateRow);
+      lastDate = dateOnly;
+    }
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${r.name}</td>
@@ -1306,14 +1343,30 @@ async function renderRentalsTable() {
             : ""
         }
         <button class="btn" style="background:#b03;color:#fff;margin-left:6px;"
-          onclick="deleteRentalSupabase('${r.id}','${r.bike_id}')">Hapus</button>
+          onclick="deleteRentalSupabase('${r.id}','${r.bike_id}')">
+          Hapus
+        </button>
       </td>
     `;
-    tbody.appendChild(tr); // ✅ APPEND saja (sudah DESC)
+    tbody.appendChild(tr);
   });
-
-  isRenderingRentals = false;
 }
+
+function filterRentals() {
+  const q = document.getElementById("searchRental").value.toLowerCase();
+
+  const filtered = allRentals.filter(r =>
+    r.name?.toLowerCase().includes(q) ||
+    r.phone?.toLowerCase().includes(q) ||
+    r.status?.toLowerCase().includes(q) ||
+    r.sudahbayar?.toLowerCase().includes(q) ||
+    r.bikes?.name?.toLowerCase().includes(q) ||
+    toLocal(r.start_time).toLowerCase().includes(q)
+  );
+
+  renderGroupedRentals(filtered);
+}
+
 
 
 /* ===============================
