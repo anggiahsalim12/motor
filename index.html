@@ -133,6 +133,47 @@ window.addEventListener("scroll", () => {
   box-shadow: 0 5px 20px rgba(0,0,0,0.08);
 }
 
+/* ===============================
+   NAVBAR GRADIENT (SEIRAMA FOOTER)
+================================ */
+.custom-navbar {
+  background: linear-gradient(135deg, #00352d, #0a8c78);
+  transition: all 0.3s ease;
+  padding: 12px 0;
+}
+
+/* Saat scroll → lebih solid + shadow */
+.custom-navbar.scrolled {
+  background: linear-gradient(135deg, #002c25, #087565);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+}
+
+/* Link navbar */
+.custom-navbar .nav-link {
+  color: #f1f5f9 !important;
+  font-weight: 500;
+}
+
+.custom-navbar .nav-link:hover {
+  color: #e6fffa !important;
+}
+
+/* Brand */
+.custom-navbar .navbar-brand span {
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+/* Button admin */
+.custom-navbar .btn {
+  background: #16a34a;
+  border: none;
+}
+.custom-navbar .btn:hover {
+  background: #15803d;
+}
+
+
 /*Footter*/
 /* FOOTER ELEGANT */
 .footer-elegant {
@@ -219,7 +260,7 @@ window.addEventListener("scroll", () => {
 <body>
 <div class="container py-3">
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+<nav class="navbar navbar-expand-lg navbar-dark custom-navbar sticky-top">
   <div class="container">
 
     <!-- LOGO / BRAND -->
