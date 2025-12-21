@@ -173,6 +173,22 @@ window.addEventListener("scroll", () => {
   background: #15803d;
 }
 
+/* ===============================
+   BACKGROUND AREA DI BELAKANG NAVBAR
+================================ */
+.header-area {
+  background: linear-gradient(135deg, #00352d, #0a8c78);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+}
+
+/* Navbar transparan agar background header terlihat */
+.header-area .navbar {
+  background: transparent !important;
+}
+
+
 
 /*Footter*/
 /* FOOTER ELEGANT */
@@ -259,6 +275,8 @@ window.addEventListener("scroll", () => {
 
 <body>
 <div class="container py-3">
+<!-- HEADER / NAVBAR WRAPPER -->
+<header class="header-area">
 
 <nav class="navbar navbar-expand-lg navbar-dark custom-navbar sticky-top">
   <div class="container">
@@ -300,7 +318,7 @@ window.addEventListener("scroll", () => {
     </div>
   </div>
 </nav>
-
+</header>
 
 <p style="color:#666;font-size:13px;">
   Aman, Cepat dan Terjangkau.
