@@ -209,7 +209,6 @@ window.addEventListener("scroll", () => {
     font-size: 15px;
   }
 }
-  body { font-family: Inter, sans-serif; padding:20px; background:#f6f7fb; }
 
   table { width:100%; border-collapse:collapse; }
   td, th { padding:8px; border-bottom:1px solid #eee; }
@@ -437,18 +436,39 @@ window.addEventListener("scroll", () => {
   <i class="fa fa-trash"></i> Hapus Semua Riwayat
   </button>
 
+
   <!-- SEARCH RIWAYAT -->
-<div class="row mb-3">
-  <div class="col-md-6">
+<div class="row mb-3 g-2">
+  <div class="col-md-4">
     <input
       type="text"
       id="searchRental"
       class="form-control"
-      placeholder="🔍 Cari nama, motor, no HP, status, tanggal..."
-      oninput="filterRentals()"
+      placeholder="🔍 Cari nama, motor, no HP, status..."
+      oninput="applyRentalFilter()"
     />
   </div>
+
+  <div class="col-md-3">
+    <input
+      type="date"
+      id="filterDate"
+      class="form-control"
+      onchange="applyRentalFilter()"
+    />
+  </div>
+
+  <div class="col-md-3">
+    <button class="btn w-100" onclick="resetFilter()">
+      🔄 Reset Filter
+    </button>
+  </div>
 </div>
+
+<!-- TOTAL OMZET -->
+<div id="dailyTotalBox" class="mb-3 fw-bold text-success"></div>
+
+
 
 <div class="table-responsive">
   <table class="rental-table">
@@ -1296,8 +1316,9 @@ async function renderRentalsTable() {
     return;
   }
 
-  allRentals = rentals; // simpan data asli
+  allRentals = rentals;
   renderGroupedRentals(rentals);
+  renderDailyTotal(rentals);
 
   isRenderingRentals = false;
 }
@@ -1352,20 +1373,55 @@ function renderGroupedRentals(data) {
   });
 }
 
-function filterRentals() {
+function applyRentalFilter() {
   const q = document.getElementById("searchRental").value.toLowerCase();
+  const selectedDate = document.getElementById("filterDate").value;
 
-  const filtered = allRentals.filter(r =>
-    r.name?.toLowerCase().includes(q) ||
-    r.phone?.toLowerCase().includes(q) ||
-    r.status?.toLowerCase().includes(q) ||
-    r.sudahbayar?.toLowerCase().includes(q) ||
-    r.bikes?.name?.toLowerCase().includes(q) ||
-    toLocal(r.start_time).toLowerCase().includes(q)
-  );
+  let filtered = allRentals.filter(r => {
+    const textMatch =
+      r.name?.toLowerCase().includes(q) ||
+      r.phone?.toLowerCase().includes(q) ||
+      r.status?.toLowerCase().includes(q) ||
+      r.sudahbayar?.toLowerCase().includes(q) ||
+      r.bikes?.name?.toLowerCase().includes(q) ||
+      toLocal(r.start_time).toLowerCase().includes(q);
+
+    const dateMatch = selectedDate
+      ? new Date(r.start_time).toISOString().slice(0, 10) === selectedDate
+      : true;
+
+    return textMatch && dateMatch;
+  });
 
   renderGroupedRentals(filtered);
+  renderDailyTotal(filtered);
 }
+
+function renderDailyTotal(data) {
+  const box = document.getElementById("dailyTotalBox");
+
+  if (!box) return;
+
+  const total = data.reduce((sum, r) => sum + (r.total || 0), 0);
+
+  box.innerHTML = `
+    📊 Total Omzet:
+    <span style="font-size:18px">
+      Rp ${numberWithDots(total)}
+    </span>
+  `;
+}
+
+
+function resetFilter() {
+  document.getElementById("searchRental").value = "";
+  document.getElementById("filterDate").value = "";
+  renderGroupedRentals(allRentals);
+  renderDailyTotal(allRentals);
+}
+
+
+
 
 
 
