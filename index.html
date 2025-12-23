@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-<link rel="icon" href="img/Logo Rental.png" sizes="36x36">
+<link rel="icon" href="img/Logo Rental.png" sizes="38x38">
 <link rel="icon" href="img/Logo Rental.png" sizes="48x48">
 <link rel="apple-touch-icon" href="img/Logo Rental.png">
 <title>Aplikasi Sewa Motor Rental Merah Putih</title>
@@ -1760,7 +1760,7 @@ async function returnBike(rentalId, bikeId) {
     let hours = Math.floor(totalMinutes / 60);
     const extraMinutes = totalMinutes % 60;
 
-    if (extraMinutes > 25) hours += 1;
+    if (extraMinutes > 35) hours += 1;
     if (hours < 1) hours = 1;
 
     // =============================
