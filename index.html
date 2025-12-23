@@ -550,11 +550,19 @@ window.addEventListener("scroll", () => {
   </div>
 </div>
 
-
-
 <!-- TOTAL OMZET -->
 <div id="dailyTotalBox" class="mb-3 fw-bold text-success"></div>
 
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <button class="btn btn-sm" onclick="prevDay()">◀ Hari Sebelumnya</button>
+
+  <strong id="currentDayLabel">Tanggal</strong>
+
+  <button class="btn btn-sm" onclick="nextDay()">Hari Berikutnya ▶</button>
+</div>
+
+
+<!-- TABEL RIWAYAT SEWA -->
 <div class="table-responsive">
   <table class="rental-table">
   <thead>
@@ -1400,6 +1408,10 @@ document.getElementById("saveBikeBtn").onclick = async () => {
    =============================== */
 
 let allRentals = []; // simpan semua data asli
+let groupedByDate = {};
+let dateKeys = [];
+let currentDayIndex = 0;
+
 
 async function renderRentalsTable() {
   if (!isAdmin || isRenderingRentals) return;
@@ -1424,27 +1436,35 @@ async function renderRentalsTable() {
   isRenderingRentals = false;
 }
 
+
 function renderGroupedRentals(data) {
   const tbody = document.getElementById("rentalTable");
   tbody.innerHTML = "";
 
-  let lastDate = "";
-
+  // 🔹 GROUP PER TANGGAL
+  groupedByDate = {};
   data.forEach(r => {
-    const dateOnly = toDateOnly(r.start_time);
+    const date = toDateOnly(r.start_time);
+    if (!groupedByDate[date]) groupedByDate[date] = [];
+    groupedByDate[date].push(r);
+  });
 
-    // 🔹 JUDUL PER HARI
-    if (dateOnly !== lastDate) {
-      const dateRow = document.createElement("tr");
-      dateRow.innerHTML = `
-        <td colspan="12"
-          style="background:#f3f4f6;font-weight:bold;">
-          📅 ${dateOnly}
-        </td>`;
-      tbody.appendChild(dateRow);
-      lastDate = dateOnly;
-    }
+  dateKeys = Object.keys(groupedByDate).sort((a, b) => {
+    return new Date(b.split("-").reverse().join("-")) -
+           new Date(a.split("-").reverse().join("-"));
+  });
 
+  if (dateKeys.length === 0) return;
+
+  // Pastikan index aman
+  if (currentDayIndex >= dateKeys.length) {
+    currentDayIndex = 0;
+  }
+
+  const currentDate = dateKeys[currentDayIndex];
+  document.getElementById("currentDayLabel").innerText = `📅 ${currentDate}`;
+
+  groupedByDate[currentDate].forEach(r => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${r.name}</td>
@@ -1472,10 +1492,30 @@ function renderGroupedRentals(data) {
     `;
     tbody.appendChild(tr);
   });
+
+  // 🔹 UPDATE OMZET HARIAN
+  renderDailyTotal(groupedByDate[currentDate], currentDate);
 }
+
+/* NAVIGASI PER TANGGAL */
+function prevDay() {
+  if (currentDayIndex < dateKeys.length - 1) {
+    currentDayIndex++;
+    renderGroupedRentals(allRentals);
+  }
+}
+
+function nextDay() {
+  if (currentDayIndex > 0) {
+    currentDayIndex--;
+    renderGroupedRentals(allRentals);
+  }
+}
+
 
 /*FILTER RENTAL*/
 function applyRentalFilter() {
+  currentDayIndex = 0;
   if (!allRentals || allRentals.length === 0) return;
 
   const q = document.getElementById("searchRental").value.trim().toLowerCase();
@@ -1569,6 +1609,7 @@ function renderOmzetPerTanggal(data) {
 
 /* RESET FILTER */
 function resetFilter() {
+  currentDayIndex = 0;
   document.getElementById("searchRental").value = "";
   document.getElementById("filterDate").value = "";
 
