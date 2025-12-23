@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-<link rel="icon" href="img/Logo Rental.png" sizes="40x40">
+<link rel="icon" href="img/Logo Rental.png" sizes="36x36">
 <link rel="icon" href="img/Logo Rental.png" sizes="48x48">
 <link rel="apple-touch-icon" href="img/Logo Rental.png">
 <title>Aplikasi Sewa Motor Rental Merah Putih</title>
@@ -1920,7 +1920,7 @@ async function downloadPdfSupabase() {
   allRentals.forEach(r => grandTotal += (r.total || 0));
 
   /* ===============================
-     HEADER UTAMA (PALING ATAS)
+     HEADER UTAMA
   ================================ */
   doc.setFontSize(16);
   doc.setFont(undefined, "bold");
@@ -1970,23 +1970,22 @@ async function downloadPdfSupabase() {
     const dailyData = grouped[date];
     const dailyTotal = dailyData.reduce((s, r) => s + (r.total || 0), 0);
 
-    // 🔹 JUDUL HARI
+    // Judul hari (TANPA EMOJI)
     doc.setFontSize(12);
     doc.setFont(undefined, "bold");
-    doc.text(`📅 Tanggal : ${date}`, 14, y);
+    doc.text(`Tanggal : ${date}`, 14, y);
     y += 6;
 
     doc.setFontSize(11);
     doc.text(`Total Omzet Hari Ini : Rp ${numberWithDots(dailyTotal)}`, 14, y);
     y += 4;
 
-    // 🔹 GARIS PEMBATAS
     doc.setDrawColor(150);
     doc.line(14, y, 196, y);
     y += 4;
 
     /* ===============================
-       TABEL RIWAYAT SEWA HARIAN
+       TABEL RIWAYAT SEWA
     ================================ */
     doc.autoTable({
       startY: y,
@@ -1998,24 +1997,32 @@ async function downloadPdfSupabase() {
         "Total",
         "Mulai",
         "Selesai",
-        "KTP/KTM/Belum Bayar",
+        "Keterangan",
         "Kembalikan",
         "Sudah Bayar",
         "Status"
       ]],
-      body: dailyData.map(r => [
-      r.name || "-",
-      bike ? bike.name : "-",
-      r.phone || "-",
-      r.duration ? r.duration + " jam" : "-",
-      "Rp " + numberWithDots(r.total),
-      toLocal(r.start_time),
-      toLocal(r.end_time),                                  // Selesai
-      (r.ktp ? "KTP " : "") + (r.ktm ? "KTM" : "") + (r.belumbayar ? "Belum Bayar" : "") || "-",  // KTP/KTM/Belum Bayar
-      toLocal(r.return_time),                               // Kembalikan
-      r.sudahbayar || "-",
-      r.status || "-"
-      ]),
+      body: dailyData.map(r => {
+        const keterangan = [
+          r.ktp ? "KTP" : null,
+          r.ktm ? "KTM" : null,
+          r.belumbayar ? "Belum Bayar" : null
+        ].filter(Boolean).join(", ") || "-";
+
+        return [
+          r.name || "-",
+          r.bikes?.name || "-",          // ✅ FIX bike
+          r.phone || "-",
+          r.duration ? r.duration + " jam" : "-",
+          "Rp " + numberWithDots(r.total || 0),
+          toLocal(r.start_time),
+          toLocal(r.end_time),
+          keterangan,
+          r.return_time ? toLocal(r.return_time) : "-",
+          r.sudahbayar || "-",
+          r.status || "-"
+        ];
+      }),
       styles: {
         fontSize: 8,
         cellPadding: 2
@@ -2031,7 +2038,6 @@ async function downloadPdfSupabase() {
 
     y = doc.lastAutoTable.finalY + 10;
 
-    // 🔹 PAGE BREAK OTOMATIS
     if (y > 260) {
       doc.addPage();
       y = 15;
@@ -2058,7 +2064,6 @@ async function downloadPdfSupabase() {
   ================================ */
   doc.save(`Laporan_Omzet_Rental_${Date.now()}.pdf`);
 }
-
 </script>
 </body>
 </html>
