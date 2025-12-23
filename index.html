@@ -1903,59 +1903,103 @@ initialRefresh();
    =============================== */
 
 async function downloadPdfSupabase() {
-  const { data: rentals } = await db
-    .from("rentals")
-    .select("*")
-    .order("start_time", { ascending: false });
-
-  if (!rentals || rentals.length === 0) {
-    alert("Belum ada data sewa.");
+  if (!allRentals || allRentals.length === 0) {
+    alert("Tidak ada data untuk diunduh!");
     return;
   }
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF("l", "pt", "a4");
+  const doc = new jsPDF("p", "mm", "a4");
 
-  doc.setFontSize(14);
-  doc.text("LAPORAN RIWAYAT SEWA MOTOR", 40, 40);
+  // ===============================
+  // HEADER PDF
+  // ===============================
+  doc.setFontSize(16);
+  doc.text("LAPORAN OMZET RENTAL MOTOR MERAH PUTIH", 105, 15, { align: "center" });
 
-  const rows = [];
+  doc.setFontSize(10);
+  doc.text(
+    `Dicetak pada: ${new Date().toLocaleDateString("id-ID")} ${new Date().toLocaleTimeString("id-ID")}`,
+    105,
+    22,
+    { align: "center" }
+  );
 
-  for (const r of rentals) {
-    const { data: bike } = await db
-      .from("bikes")
-      .select("name")
-      .eq("id", r.bike_id)
-      .single();
+  // ===============================
+  // HITUNG OMZET PER TANGGAL
+  // ===============================
+  const grouped = {};
+  let grandTotal = 0;
 
-    rows.push([
-    r.name || "-",
-    bike ? bike.name : "-",
-    r.phone || "-",
-    r.duration ? r.duration + " jam" : "-",
-    "Rp " + numberWithDots(r.total),
-    toLocal(r.start_time),
-    toLocal(r.end_time),                                  // Selesai
-    (r.ktp ? "KTP " : "") + (r.ktm ? "KTM" : "") + (r.belumbayar ? "Belum Bayar" : "") || "-",  // KTP/KTM/Belum Bayar
-    toLocal(r.return_time),                               // Kembalikan
-    r.sudahbayar || "-",
-    r.status || "-"
-  ]);
+  allRentals.forEach(r => {
+    const dateKey = toDateOnly(r.start_time);
+    const total = r.total || 0;
 
-  }
-
-  doc.autoTable({
-    startY: 70,
-    head: [[
-      "Nama", "Motor", "No HP", "Durasi",
-      "Total", "Mulai","Selesai", "KTP/KTM/(Belum Bayar)","Kembalikan", "Sudah Bayar",  "Status"
-    ]],
-    body: rows,
-    styles: { fontSize: 9 }
+    grouped[dateKey] = (grouped[dateKey] || 0) + total;
+    grandTotal += total;
   });
 
-  doc.save("Buku_Kas_Sewa_Motor.pdf");
+  const rows = Object.keys(grouped)
+    .sort(
+      (a, b) =>
+        new Date(a.split("-").reverse().join("-")) -
+        new Date(b.split("-").reverse().join("-"))
+    )
+    .map(date => [
+      date,
+      `Rp ${numberWithDots(grouped[date])}`
+    ]);
+
+  // ===============================
+  // TABEL OMZET PER TANGGAL
+  // ===============================
+  doc.autoTable({
+    startY: 30,
+    head: [["Tanggal", "Total Omzet"]],
+    body: rows,
+    styles: {
+      fontSize: 10,
+      cellPadding: 4
+    },
+    headStyles: {
+      fillColor: [10, 140, 120] // hijau elegan
+    },
+    columnStyles: {
+      1: { halign: "right" }
+    }
+  });
+
+  // ===============================
+  // TOTAL KESELURUHAN
+  // ===============================
+  const finalY = doc.lastAutoTable.finalY + 10;
+
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+  doc.text(
+    `TOTAL OMZET KESELURUHAN : Rp ${numberWithDots(grandTotal)}`,
+    14,
+    finalY
+  );
+
+  // ===============================
+  // FOOTER
+  // ===============================
+  doc.setFontSize(9);
+  doc.setFont(undefined, "normal");
+  doc.text(
+    "Rental Motor Merah Putih - Sistem Administrasi",
+    105,
+    290,
+    { align: "center" }
+  );
+
+  // ===============================
+  // SIMPAN PDF
+  // ===============================
+  doc.save(`Laporan_Omzet_Rental_${Date.now()}.pdf`);
 }
+
 
 
 </script>
