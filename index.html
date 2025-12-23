@@ -713,7 +713,18 @@ window.addEventListener("scroll", () => {
 const SUPABASE_URL = "https://jjdvpopexxqzwxfmsqxa.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqZHZwb3BleHhxend4Zm1zcXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyOTk0MTEsImV4cCI6MjA4MTg3NTQxMX0.IN8WT5bqZo9CZNOdF619v5MefMxvEilDM1GNhHQ_W18";
 
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const db = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  }
+);
+
 
 /* ===============================
      2. REALTIME SUBSCRIBE
@@ -1237,7 +1248,7 @@ async function checkIsAdmin() {
 }
 
 /* AUTH LISTENER (SATU KALI) */
-db.auth.onAuthStateChange(async (_event, session) => {
+db.auth.onAuthStateChange((_event, session) => {
   if (!session) {
     isAdmin = false;
     adminPanel.style.display = "none";
@@ -1246,21 +1257,20 @@ db.auth.onAuthStateChange(async (_event, session) => {
   }
 });
 
-/* INIT */
-document.addEventListener("DOMContentLoaded", async () => {
-  const { data } = await db.auth.getSession();
-  isAdmin = data.session ? await checkIsAdmin() : false;
-  adminPanel.style.display = isAdmin ? "block" : "none";
-  updateAdminButton();
-  initialRefresh();
 
-  if (isAdmin) renderRentalsTable();
+/* INIT */
+document.addEventListener("DOMContentLoaded", () => {
+  isAdmin = false;
+  adminPanel.style.display = "none";
+  updateAdminButton();
+  loadBikes();
 
   adminBtn.onclick = () => {
-    if (isAdmin) logoutAdmin();
-    else loginModal.classList.add("show");
+    loginModal.classList.add("show");
   };
 });
+
+
 
 /* UI */
 function updateAdminButton() {
@@ -2064,9 +2074,41 @@ async function downloadPdfSupabase() {
   ================================ */
   doc.save(`Laporan_Omzet_Rental_${Date.now()}.pdf`);
 }
+
+
+
+/* ===============================
+   AUTO LOGOUT SAAT TAB / APP DITUTUP
+================================ */
+
+// Logout otomatis ketika tab ditutup / browser keluar
+window.addEventListener("beforeunload", () => {
+  try {
+    // Hanya logout jika sedang admin
+    if (isAdmin) {
+      navigator.sendBeacon(
+        "/logout",
+        JSON.stringify({ logout: true })
+      );
+      db.auth.signOut();
+    }
+  } catch (e) {
+    console.warn("Auto logout gagal:", e);
+  }
+});
+
+// Untuk mobile browser (lebih akurat)
+window.addEventListener("pagehide", () => {
+  if (isAdmin) {
+    db.auth.signOut();
+  }
+});
+
+
 </script>
 </body>
 </html>
+
 
 
 
