@@ -526,6 +526,32 @@ window.addEventListener("scroll", () => {
   </div>
 </div>
 
+
+<!-- OMZET PER TANGGAL -->
+<div class="card mb-3">
+  <h5 class="mb-2">📅 Omzet Per Tanggal</h5>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-sm">
+      <thead class="table-light">
+        <tr>
+          <th style="width:50%">Tanggal</th>
+          <th>Total Omzet</th>
+        </tr>
+      </thead>
+      <tbody id="omzetTanggalTable">
+        <tr>
+          <td colspan="2" class="text-center text-muted">
+            Belum ada data
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+
 <!-- TOTAL OMZET -->
 <div id="dailyTotalBox" class="mb-3 fw-bold text-success"></div>
 
@@ -1387,6 +1413,7 @@ async function renderRentalsTable() {
   allRentals = rentals;
   renderGroupedRentals(rentals);
   renderDailyTotal(rentals);
+  renderOmzetPerTanggal(rentals);
 
   isRenderingRentals = false;
 }
@@ -1441,6 +1468,7 @@ function renderGroupedRentals(data) {
   });
 }
 
+/*FILTER RENTAL*/
 function applyRentalFilter() {
   const q = document.getElementById("searchRental").value.toLowerCase();
   const selectedDate = document.getElementById("filterDate").value;
@@ -1461,10 +1489,11 @@ function applyRentalFilter() {
   });
 
   renderGroupedRentals(filtered);
+  renderOmzetPerTanggal(filtered);
   renderDailyTotal(filtered, selectedDate);
 }
 
-
+/* RENDER TOTAL OMZET HARIAN */
 function renderDailyTotal(data, selectedDate = "") {
   const box = document.getElementById("dailyTotalBox");
   if (!box) return;
@@ -1484,20 +1513,58 @@ function renderDailyTotal(data, selectedDate = "") {
   `;
 }
 
+/* RENDER OMZET PER TANGGAL */
+function renderOmzetPerTanggal(data) {
+  const tbody = document.getElementById("omzetTanggalTable");
+  if (!tbody) return;
 
+  if (!data || data.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="2" class="text-center text-muted">
+          Tidak ada data
+        </td>
+      </tr>`;
+    return;
+  }
+
+  // GROUP BY TANGGAL
+  const grouped = {};
+  data.forEach(r => {
+    const dateKey = toDateOnly(r.start_time);
+    grouped[dateKey] = (grouped[dateKey] || 0) + (r.total || 0);
+  });
+
+  // SORT TANGGAL TERBARU
+  const sortedDates = Object.keys(grouped).sort(
+    (a, b) => new Date(b.split("-").reverse().join("-")) -
+              new Date(a.split("-").reverse().join("-"))
+  );
+
+  tbody.innerHTML = "";
+
+  sortedDates.forEach(date => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${date}</td>
+        <td class="fw-bold text-success">
+          Rp ${numberWithDots(grouped[date])}
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/* RESET FILTER */
 function resetFilter() {
   document.getElementById("searchRental").value = "";
   document.getElementById("filterDate").value = "";
 
   renderGroupedRentals(allRentals);
   renderDailyTotal(allRentals);
+  renderOmzetPerTanggal(filtered);
+
 }
-
-
-
-
-
-
 
 /* ===============================
     HAPUS SEMUA RIWAYAT SEWA (SAFE)
