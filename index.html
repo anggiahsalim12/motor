@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-<link rel="icon" href="img/Logo Rental.png" sizes="36x36">
+<link rel="icon" href="img/Logo Rental.png" sizes="40x40">
 <link rel="icon" href="img/Logo Rental.png" sizes="48x48">
 <link rel="apple-touch-icon" href="img/Logo Rental.png">
 <title>Aplikasi Sewa Motor Rental Merah Putih</title>
@@ -1904,103 +1904,160 @@ initialRefresh();
 
 async function downloadPdfSupabase() {
   if (!allRentals || allRentals.length === 0) {
-    alert("Tidak ada data untuk diunduh!");
+    alert("Tidak ada data untuk dicetak!");
     return;
   }
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF("p", "mm", "a4");
 
-  // ===============================
-  // HEADER PDF
-  // ===============================
-  doc.setFontSize(16);
-  doc.text("LAPORAN OMZET RENTAL MOTOR MERAH PUTIH", 105, 15, { align: "center" });
+  let y = 15;
 
+  /* ===============================
+     HITUNG TOTAL KESELURUHAN
+  ================================ */
+  let grandTotal = 0;
+  allRentals.forEach(r => grandTotal += (r.total || 0));
+
+  /* ===============================
+     HEADER UTAMA (PALING ATAS)
+  ================================ */
+  doc.setFontSize(16);
+  doc.setFont(undefined, "bold");
+  doc.text("LAPORAN OMZET RENTAL MOTOR MERAH PUTIH", 105, y, { align: "center" });
+
+  y += 8;
+  doc.setFontSize(12);
+  doc.text(
+    `TOTAL OMZET : Rp ${numberWithDots(grandTotal)}`,
+    105,
+    y,
+    { align: "center" }
+  );
+
+  y += 6;
   doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
   doc.text(
     `Dicetak pada: ${new Date().toLocaleDateString("id-ID")} ${new Date().toLocaleTimeString("id-ID")}`,
     105,
-    22,
+    y,
     { align: "center" }
   );
 
-  // ===============================
-  // HITUNG OMZET PER TANGGAL
-  // ===============================
-  const grouped = {};
-  let grandTotal = 0;
+  y += 10;
 
+  /* ===============================
+     GROUP DATA PER TANGGAL
+  ================================ */
+  const grouped = {};
   allRentals.forEach(r => {
     const dateKey = toDateOnly(r.start_time);
-    const total = r.total || 0;
-
-    grouped[dateKey] = (grouped[dateKey] || 0) + total;
-    grandTotal += total;
+    if (!grouped[dateKey]) grouped[dateKey] = [];
+    grouped[dateKey].push(r);
   });
 
-  const rows = Object.keys(grouped)
-    .sort(
-      (a, b) =>
-        new Date(a.split("-").reverse().join("-")) -
-        new Date(b.split("-").reverse().join("-"))
-    )
-    .map(date => [
-      date,
-      `Rp ${numberWithDots(grouped[date])}`
-    ]);
+  const sortedDates = Object.keys(grouped).sort(
+    (a, b) =>
+      new Date(a.split("-").reverse().join("-")) -
+      new Date(b.split("-").reverse().join("-"))
+  );
 
-  // ===============================
-  // TABEL OMZET PER TANGGAL
-  // ===============================
-  doc.autoTable({
-    startY: 30,
-    head: [["Tanggal", "Total Omzet"]],
-    body: rows,
-    styles: {
-      fontSize: 10,
-      cellPadding: 4
-    },
-    headStyles: {
-      fillColor: [10, 140, 120] // hijau elegan
-    },
-    columnStyles: {
-      1: { halign: "right" }
+  /* ===============================
+     LOOP PER HARI
+  ================================ */
+  for (const date of sortedDates) {
+    const dailyData = grouped[date];
+    const dailyTotal = dailyData.reduce((s, r) => s + (r.total || 0), 0);
+
+    // 🔹 JUDUL HARI
+    doc.setFontSize(12);
+    doc.setFont(undefined, "bold");
+    doc.text(`📅 Tanggal : ${date}`, 14, y);
+    y += 6;
+
+    doc.setFontSize(11);
+    doc.text(`Total Omzet Hari Ini : Rp ${numberWithDots(dailyTotal)}`, 14, y);
+    y += 4;
+
+    // 🔹 GARIS PEMBATAS
+    doc.setDrawColor(150);
+    doc.line(14, y, 196, y);
+    y += 4;
+
+    /* ===============================
+       TABEL RIWAYAT SEWA HARIAN
+    ================================ */
+    doc.autoTable({
+      startY: y,
+      head: [[
+        "Nama",
+        "Motor",
+        "No HP",
+        "Durasi",
+        "Total",
+        "Mulai",
+        "Selesai",
+        "KTP/KTM/Belum Bayar",
+        "Kembalikan",
+        "Sudah Bayar",
+        "Status"
+      ]],
+      body: dailyData.map(r => [
+      r.name || "-",
+      bike ? bike.name : "-",
+      r.phone || "-",
+      r.duration ? r.duration + " jam" : "-",
+      "Rp " + numberWithDots(r.total),
+      toLocal(r.start_time),
+      toLocal(r.end_time),                                  // Selesai
+      (r.ktp ? "KTP " : "") + (r.ktm ? "KTM" : "") + (r.belumbayar ? "Belum Bayar" : "") || "-",  // KTP/KTM/Belum Bayar
+      toLocal(r.return_time),                               // Kembalikan
+      r.sudahbayar || "-",
+      r.status || "-"
+      ]),
+      styles: {
+        fontSize: 8,
+        cellPadding: 2
+      },
+      headStyles: {
+        fillColor: [10, 140, 120]
+      },
+      columnStyles: {
+        4: { halign: "right" }
+      },
+      margin: { left: 14, right: 14 }
+    });
+
+    y = doc.lastAutoTable.finalY + 10;
+
+    // 🔹 PAGE BREAK OTOMATIS
+    if (y > 260) {
+      doc.addPage();
+      y = 15;
     }
-  });
+  }
 
-  // ===============================
-  // TOTAL KESELURUHAN
-  // ===============================
-  const finalY = doc.lastAutoTable.finalY + 10;
+  /* ===============================
+     FOOTER
+  ================================ */
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(9);
+    doc.text(
+      `Rental Motor Merah Putih | Halaman ${i} dari ${pageCount}`,
+      105,
+      290,
+      { align: "center" }
+    );
+  }
 
-  doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
-  doc.text(
-    `TOTAL OMZET KESELURUHAN : Rp ${numberWithDots(grandTotal)}`,
-    14,
-    finalY
-  );
-
-  // ===============================
-  // FOOTER
-  // ===============================
-  doc.setFontSize(9);
-  doc.setFont(undefined, "normal");
-  doc.text(
-    "Rental Motor Merah Putih - Sistem Administrasi",
-    105,
-    290,
-    { align: "center" }
-  );
-
-  // ===============================
-  // SIMPAN PDF
-  // ===============================
+  /* ===============================
+     SIMPAN FILE
+  ================================ */
   doc.save(`Laporan_Omzet_Rental_${Date.now()}.pdf`);
 }
-
-
 
 </script>
 </body>
