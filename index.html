@@ -1265,9 +1265,16 @@ document.addEventListener("DOMContentLoaded", () => {
   updateAdminButton();
   loadBikes();
 
-  adminBtn.onclick = () => {
+  adminBtn.onclick = async () => {
+  if (isAdmin) {
+    // 🔴 LOGOUT
+    if (!confirm("Yakin ingin logout dari admin?")) return;
+    await logoutAdmin();
+  } else {
+    // 🔐 LOGIN
     loginModal.classList.add("show");
-  };
+  }
+};
 });
 
 
@@ -1710,17 +1717,12 @@ document.getElementById("deleteAllRentalsBtn").onclick = async () => {
     const { error } = await db
       .from("rentals")
       .delete()
-      .not("id", "is", null);
+      .neq("status", "ongoing");
 
     if (error) {
       alert("Gagal menghapus semua riwayat: " + error.message);
       return;
     }
-
-    // Reset semua motor jadi available
-    await db.from("bikes")
-      .update({ status: "available" })
-      .not("id", "is", null);
 
     alert("Semua riwayat berhasil dihapus!");
     renderRentalsTable();
