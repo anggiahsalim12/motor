@@ -710,8 +710,8 @@ window.addEventListener("scroll", () => {
      1. INISIALISASI SUPABASE
    =============================== */
 
-const SUPABASE_URL = "https://jjdvpopexxqzwxfmsqxa.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqZHZwb3BleHhxend4Zm1zcXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyOTk0MTEsImV4cCI6MjA4MTg3NTQxMX0.IN8WT5bqZo9CZNOdF619v5MefMxvEilDM1GNhHQ_W18";
+const SUPABASE_URL = "https://ksytftojgsjiovwdpcbw.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzeXRmdG9qZ3NqaW92d2RwY2J3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzODcxMjYsImV4cCI6MjA4MTk2MzEyNn0.rSslnj1Ca_XteV8NmAt_srGuq4shecJk4nS00B0yQjg";
 
 const db = supabase.createClient(
   SUPABASE_URL,
@@ -1749,10 +1749,30 @@ async function returnBike(rentalId, bikeId) {
   const start = new Date(rental.start_time);
   const end = new Date();  // waktu dikembalikan otomatis
 
+  ///////////////////////////////
+  //* Hitung durasi otomatis
+  ///////////////////////////////
   // Hitung durasi otomatis (jam)
   const diffMs = end - start;
-  const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
 
+  // total menit real
+  const totalMinutes = Math.floor(diffMs / (1000 * 60));
+
+  // jam penuh
+  let hours = Math.floor(totalMinutes / 60);
+
+  // sisa menit
+  const extraMinutes = totalMinutes % 60;
+
+  // ⏱️ toleransi 25 menit
+  if (extraMinutes > 25) {
+    hours += 1;
+  }
+
+  // minimal 1 jam
+  if (hours < 1) hours = 1;
+
+//============================//
   // Hitung total otomatis
   const rateHour = rental.bikes.rate_hour;
   const rateDay  = rental.bikes.rate_day;
@@ -1760,20 +1780,19 @@ async function returnBike(rentalId, bikeId) {
   // 🔥 HITUNG TOTAL SESUAI ATURAN
   let total = 0;
 
-  if (diffHours >= 24) {
-    const days = Math.floor(diffHours / 24);
-    const extraHours = diffHours % 24;
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    const extraHours = hours % 24;
     total = (days * rateDay) + (extraHours * rateHour);
   } else {
-    total = diffHours * rateHour;
+    total = hours * rateHour;
   }
-
 
   // Update rental lengkap + return_time dalam format ISO
   const { error: err2 } = await db
     .from("rentals")
     .update({
-      duration: diffHours,
+      duration: hours,
       total: total,
       status: "finished",
       return_time: end.toISOString()  // disimpan dalam ISO
@@ -2108,7 +2127,6 @@ window.addEventListener("pagehide", () => {
 </script>
 </body>
 </html>
-
 
 
 
