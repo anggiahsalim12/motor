@@ -1326,6 +1326,10 @@ function toDateInputValue(dateInput) {
   return `${y}-${m}-${day}`; // ✅ SESUAI input[type=date]
 }
 
+function safeText(val) {
+  if (val === null || val === undefined) return "";
+  return String(val).toLowerCase();
+}
 
 
 /* ===============================
@@ -1472,18 +1476,20 @@ function renderGroupedRentals(data) {
 
 /*FILTER RENTAL*/
 function applyRentalFilter() {
-  const q = document.getElementById("searchRental").value.toLowerCase().trim();
+  if (!allRentals || allRentals.length === 0) return;
+
+  const q = document.getElementById("searchRental").value.trim().toLowerCase();
   const selectedDate = document.getElementById("filterDate").value;
 
   const filtered = allRentals.filter(r => {
-    // 🔍 SEARCH TEXT
+    // 🔍 TEXT SEARCH (AMAN SEMUA TIPE DATA)
     const textMatch =
       !q ||
-      r.name?.toLowerCase().includes(q) ||
-      r.phone?.toLowerCase().includes(q) ||
-      r.status?.toLowerCase().includes(q) ||
-      r.sudahbayar?.toLowerCase().includes(q) ||
-      r.bikes?.name?.toLowerCase().includes(q);
+      safeText(r.name).includes(q) ||
+      safeText(r.phone).includes(q) ||
+      safeText(r.status).includes(q) ||
+      safeText(r.sudahbayar).includes(q) ||
+      safeText(r.bikes?.name).includes(q);
 
     // 📅 DATE FILTER
     const rentalDate = toDateInputValue(r.start_time);
@@ -1496,6 +1502,7 @@ function applyRentalFilter() {
   renderOmzetPerTanggal(filtered);
   renderDailyTotal(filtered, selectedDate);
 }
+
 
 
 /* RENDER TOTAL OMZET HARIAN */
