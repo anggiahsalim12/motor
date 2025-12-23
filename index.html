@@ -1565,7 +1565,6 @@ function renderDailyTotal(data, selectedDate = "") {
   `;
 }
 
-/* RENDER OMZET PER TANGGAL */
 function renderOmzetPerTanggal(data) {
   const tbody = document.getElementById("omzetTanggalTable");
   if (!tbody) return;
@@ -1580,21 +1579,32 @@ function renderOmzetPerTanggal(data) {
     return;
   }
 
+  // ===============================
   // GROUP BY TANGGAL
+  // ===============================
   const grouped = {};
+  let grandTotal = 0;
+
   data.forEach(r => {
     const dateKey = toDateOnly(r.start_time);
-    grouped[dateKey] = (grouped[dateKey] || 0) + (r.total || 0);
+    const total = r.total || 0;
+
+    grouped[dateKey] = (grouped[dateKey] || 0) + total;
+    grandTotal += total; // 🔥 TOTAL KESELURUHAN
   });
 
   // SORT TANGGAL TERBARU
   const sortedDates = Object.keys(grouped).sort(
-    (a, b) => new Date(b.split("-").reverse().join("-")) -
-              new Date(a.split("-").reverse().join("-"))
+    (a, b) =>
+      new Date(b.split("-").reverse().join("-")) -
+      new Date(a.split("-").reverse().join("-"))
   );
 
   tbody.innerHTML = "";
 
+  // ===============================
+  // ROW PER TANGGAL
+  // ===============================
   sortedDates.forEach(date => {
     tbody.innerHTML += `
       <tr>
@@ -1605,7 +1615,22 @@ function renderOmzetPerTanggal(data) {
       </tr>
     `;
   });
+
+  // ===============================
+  // ROW TOTAL KESELURUHAN
+  // ===============================
+  tbody.innerHTML += `
+    <tr class="table-success">
+      <td class="fw-bold text-uppercase">
+        💰 Total Omzet Keseluruhan
+      </td>
+      <td class="fw-bold fs-6">
+        Rp ${numberWithDots(grandTotal)}
+      </td>
+    </tr>
+  `;
 }
+
 
 /* RESET FILTER */
 function resetFilter() {
@@ -1936,7 +1961,6 @@ async function downloadPdfSupabase() {
 </script>
 </body>
 </html>
-
 
 
 
