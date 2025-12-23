@@ -1291,6 +1291,14 @@ function toLocal(dateInput) {
 }
 
 
+function toDateInputValue(dateInput) {
+  const d = new Date(dateInput);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${day}-${m}-${y}`;
+}
+
 
 /* ===============================
    9. TAMBAH MOTOR (ADMIN) - simple prompt
@@ -1437,35 +1445,39 @@ function applyRentalFilter() {
   const q = document.getElementById("searchRental").value.toLowerCase();
   const selectedDate = document.getElementById("filterDate").value;
 
-  let filtered = allRentals.filter(r => {
+  const filtered = allRentals.filter(r => {
     const textMatch =
       r.name?.toLowerCase().includes(q) ||
       r.phone?.toLowerCase().includes(q) ||
       r.status?.toLowerCase().includes(q) ||
       r.sudahbayar?.toLowerCase().includes(q) ||
-      r.bikes?.name?.toLowerCase().includes(q) ||
-      toLocal(r.start_time).toLowerCase().includes(q);
+      r.bikes?.name?.toLowerCase().includes(q);
 
     const dateMatch = selectedDate
-      ? new Date(r.start_time).toISOString().slice(0, 10) === selectedDate
+      ? toDateInputValue(r.start_time) === selectedDate
       : true;
 
     return textMatch && dateMatch;
   });
 
   renderGroupedRentals(filtered);
-  renderDailyTotal(filtered);
+  renderDailyTotal(filtered, selectedDate);
 }
 
-function renderDailyTotal(data) {
-  const box = document.getElementById("dailyTotalBox");
 
+function renderDailyTotal(data, selectedDate = "") {
+  const box = document.getElementById("dailyTotalBox");
   if (!box) return;
+
+  if (data.length === 0) {
+    box.innerHTML = "📊 Total Omzet: Rp 0";
+    return;
+  }
 
   const total = data.reduce((sum, r) => sum + (r.total || 0), 0);
 
   box.innerHTML = `
-    📊 Total Omzet:
+    📊 Total Omzet ${selectedDate ? `(${selectedDate})` : ""}:
     <span style="font-size:18px">
       Rp ${numberWithDots(total)}
     </span>
@@ -1476,9 +1488,11 @@ function renderDailyTotal(data) {
 function resetFilter() {
   document.getElementById("searchRental").value = "";
   document.getElementById("filterDate").value = "";
+
   renderGroupedRentals(allRentals);
   renderDailyTotal(allRentals);
 }
+
 
 
 
